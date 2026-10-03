@@ -1,92 +1,93 @@
 # Nono21
 
-Minimal Python test project for the Gemini API pipeline:
+Nono21 is a small Android + Python test application for the Gemini pipeline:
 
 **Nano Banana 2 → Veo 3.1 image-to-video**
 
-The project follows Google's current Gemini API example for generating an image with Nano Banana 2 and using that image as the starting frame for Veo 3.1. See the official Veo documentation for the current API behavior and model availability.
+Google's current Veo 3.1 documentation explicitly shows this image-to-video flow: generate an image with `gemini-3.1-flash-image-preview`, then pass that image to `veo-3.1-generate-preview`. citeturn0search0
 
-## Requirements
+## Architecture
 
-- Python 3.10+
-- A Gemini API key with access to the required models
-- Internet access
+```
+Android phone
+    │
+    │ HTTP
+    ▼
+Nono21 FastAPI server
+    │
+    │ GEMINI_API_KEY stays here
+    ▼
+Gemini API
+    ├── Nano Banana 2 → PNG
+    └── Veo 3.1 → MP4 + audio
+```
 
-## Setup
+The Android APK **does not contain the Gemini API key**. The key belongs on the server.
 
-### 1. Create a virtual environment
+## 1. Start the server
+
+From the repository root:
 
 ```bash
 python -m venv .venv
 ```
 
-Activate it:
-
-**Windows PowerShell**
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-**macOS/Linux**
-```bash
-source .venv/bin/activate
-```
-
-### 2. Install dependencies
+Activate the environment, then:
 
 ```bash
-pip install -r requirements.txt
+pip install -r server/requirements.txt
 ```
 
-### 3. Configure the API key
-
-Copy `.env.example` to `.env`:
-
-```bash
-cp .env.example .env
-```
-
-On Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Then edit `.env`:
+Create `server/.env` from `server/.env.example` and add:
 
 ```env
 GEMINI_API_KEY=YOUR_REAL_API_KEY
 ```
 
-**Never commit `.env` or your real API key.**
-
-### 4. Run
+Start the server so the phone can reach it:
 
 ```bash
-python main.py
+uvicorn server.main:app --host 0.0.0.0 --port 8000
 ```
 
-The script:
+Test:
 
-1. Generates a kitten image with `gemini-3.1-flash-image-preview`.
-2. Uses that image as the starting frame for `veo-3.1-generate-preview`.
-3. Polls the long-running Veo operation until it completes.
-4. Saves the image as `nano_banana_2.png`.
-5. Saves the generated video as `veo3.1_with_image_input.mp4`.
-
-Generated media is ignored by Git via `.gitignore`.
-
-## Change the prompt
-
-Edit `PROMPT` in `main.py`:
-
-```python
-PROMPT = "Your prompt here"
+```
+http://YOUR_COMPUTER_IP:8000/health
 ```
 
-## Important
+## 2. Android phone
 
-Video generation is asynchronous and can take time. Veo 3.1 also generates audio natively. Availability, quotas, pricing, and model names can change while these models are in preview, so check the official Google AI documentation before troubleshooting an API error.
+The Android client is in `android_app/`.
 
-Official documentation:
-https://ai.google.dev/gemini-api/docs/veo
+On a real phone, set **Nono21 server URL** to the computer's LAN address, for example:
+
+```
+http://192.168.1.20:8000
+```
+
+Both devices must be on the same Wi-Fi network and the computer firewall must allow TCP port 8000.
+
+## 3. Build the APK
+
+GitHub Actions automatically creates the missing Flutter Android platform files and builds a release APK.
+
+Run the **Android APK** workflow manually from the Actions tab, or push to `main`.
+
+The generated APK is uploaded as the workflow artifact `nono21-release-apk`.
+
+## Security
+
+Never put `GEMINI_API_KEY` in Flutter, the APK, GitHub source files, or a public frontend. Keep it only in the server environment.
+
+## Current generation
+
+Default prompt:
+
+```
+Panning wide shot of a calico kitten sleeping in the sunshine
+```
+
+The server returns a job immediately. The Android app polls the job until the image is available and then until Veo 3.1 finishes.
+
+Veo 3.1 generation is asynchronous and can take time. Google documents 8-second generation, native audio, and image-to-video input for Veo 3.1. citeturn0search0
