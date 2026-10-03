@@ -1,0 +1,12 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.mp4
+*.mov
+*.webm
+*.png
+*.jpg
+*.jpeg
+.DS_Store
